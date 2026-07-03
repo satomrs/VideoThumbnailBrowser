@@ -117,10 +117,27 @@ public partial class MainWindow : Window
             Vm.SelectFolderNodeCommand.Execute(node);
     }
 
+    private void OnFolderFilterClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is FolderTreeNodeViewModel node)
+            Vm.SelectFolderNodeCommand.Execute(node);
+    }
+
+    private void OnRescanFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement fe) return;
+        if (fe.DataContext is not FolderTreeNodeViewModel node) return;
+        var folder = Vm.Folders.FirstOrDefault(f =>
+            string.Equals(f.Path, node.FullPath, StringComparison.OrdinalIgnoreCase));
+        if (folder != null) Vm.RescanFolderCommand.Execute(folder);
+    }
+
     private void OnRemoveFolderClick(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement fe) return;
         if (fe.DataContext is not FolderTreeNodeViewModel node) return;
+        // ルートノード（監視フォルダ）のみ削除可能
+        if (!node.IsWatchedRoot) return;
         var folder = Vm.Folders.FirstOrDefault(f =>
             string.Equals(f.Path, node.FullPath, StringComparison.OrdinalIgnoreCase));
         if (folder != null) Vm.RemoveFolderCommand.Execute(folder);

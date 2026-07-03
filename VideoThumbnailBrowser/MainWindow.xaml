@@ -4,7 +4,7 @@
         xmlns:vm="clr-namespace:VideoThumbnailBrowser.ViewModels"
         xmlns:controls="clr-namespace:VideoThumbnailBrowser.Controls"
         xmlns:models="clr-namespace:VideoThumbnailBrowser.Models"
-        Title="Video Thumbnail Browser" Height="800" Width="1400"
+        Title="PinkBrowser" Height="800" Width="1400"
         Background="#252526" Icon="app.ico">
     <Window.DataContext>
         <vm:MainViewModel />
@@ -23,7 +23,8 @@
             <Menu DockPanel.Dock="Left" Background="Transparent" VerticalAlignment="Center">
                 <MenuItem Header="ファイル">
                     <MenuItem Header="フォルダーを追加..." Command="{Binding AddFolderCommand}"/>
-                    <MenuItem Header="再スキャン" Command="{Binding RescanAllCommand}"/>
+                    <MenuItem Header="再スキャン（差分のみ）" Command="{Binding RescanAllCommand}"/>
+                    <MenuItem Header="サムネイルを再生成（全体）" Command="{Binding RescanAllWithRegenerateCommand}"/>
                     <Separator/>
                     <MenuItem Header="終了" Click="OnExitClick"/>
                 </MenuItem>
@@ -201,33 +202,25 @@
                         </TreeView.ItemContainerStyle>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="{Binding Name}"
-                                               TextTrimming="CharacterEllipsis"
-                                               ToolTip="{Binding FullPath}"
-                                               VerticalAlignment="Center"
-                                               MouseLeftButtonUp="OnFolderNodeClicked"/>
-                                    <Button Grid.Column="1" Content="⊘" Width="18" Height="18"
-                                            Padding="0" FontSize="11" Foreground="#AAAAAA"
-                                            Background="Transparent" BorderThickness="0"
-                                            ToolTip="絞り込みを解除"
-                                            Command="{Binding DataContext.ClearFolderFilterCommand,
-                                                RelativeSource={RelativeSource AncestorType=Window}}"
-                                            Visibility="{Binding IsWatchedRoot,
-                                                Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                    <Button Grid.Column="2" Content="✕" Width="18" Height="18"
-                                            Padding="0" FontSize="11" Foreground="#FF6666"
-                                            Background="Transparent" BorderThickness="0"
-                                            ToolTip="監視フォルダを削除"
-                                            Click="OnRemoveFolderClick"
-                                            Visibility="{Binding IsWatchedRoot,
-                                                Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                </Grid>
+                                <TextBlock Text="{Binding Name}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding FullPath}"
+                                           Padding="2,1"
+                                           MouseLeftButtonUp="OnFolderNodeClicked">
+                                    <TextBlock.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="このフォルダで絞り込む" Click="OnFolderFilterClick"/>
+                                            <MenuItem Header="絞り込みを解除"
+                                                      Command="{Binding DataContext.ClearFolderFilterCommand,
+                                                          RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <Separator/>
+                                            <MenuItem Header="このフォルダを再スキャン" Click="OnRescanFolderClick"/>
+                                            <Separator/>
+                                            <MenuItem Header="監視フォルダから登録解除..." Click="OnRemoveFolderClick"
+                                                      Foreground="#FF6666"/>
+                                        </ContextMenu>
+                                    </TextBlock.ContextMenu>
+                                </TextBlock>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>

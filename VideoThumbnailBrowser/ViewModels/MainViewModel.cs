@@ -212,6 +212,8 @@ public class MainViewModel : ViewModelBase
     public RelayCommand AddFolderCommand { get; }
     public RelayCommand RemoveFolderCommand { get; }
     public RelayCommand RescanAllCommand { get; }
+    public RelayCommand RescanAllWithRegenerateCommand { get; }
+    public RelayCommand<WatchedFolder> RescanFolderCommand { get; }
     public RelayCommand SelectFolderNodeCommand { get; }
     public RelayCommand ClearFolderFilterCommand { get; }
     public RelayCommand OpenSettingsCommand { get; }
@@ -276,7 +278,12 @@ public class MainViewModel : ViewModelBase
         {
             if (p is WatchedFolder f) RemoveFolder(f);
         });
-        RescanAllCommand = new RelayCommand(_ => _ = RescanAllAsync());
+        RescanAllCommand = new RelayCommand(_ => _ = RescanAllAsync(regenerate: false));
+        RescanAllWithRegenerateCommand = new RelayCommand(_ => _ = RescanAllAsync(regenerate: true));
+        RescanFolderCommand = new RelayCommand<WatchedFolder>(f =>
+        {
+            if (f != null) _ = ScanFolderAsync(f);
+        });
         SelectFolderNodeCommand = new RelayCommand(p =>
         {
             if (p is FolderTreeNodeViewModel node) SelectFolderFilter(node.FullPath);
@@ -453,12 +460,33 @@ public class MainViewModel : ViewModelBase
 
     private void RemoveFolder(WatchedFolder folder)
     {
+        var result = System.Windows.MessageBox.Show(
+            $"「{folder.Path}」の登録を解除しますか？\n\nキャッシュされたサムネイルも削除されます。",
+            "フォルダ登録解除", System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+
         Folders.Remove(folder);
         SaveFolderSettings();
 
         var toRemove = _allItems.Where(v => IsUnderFolder(v.FilePath, folder.Path)).ToList();
         foreach (var item in toRemove)
+        {
+            // サムネイル画像ファイルを削除
+            foreach (var thumbPath in item.Model.ThumbnailPaths)
+            {
+                try
+                {
+                    if (File.Exists(thumbPath)) File.Delete(thumbPath);
+                    // 親ディレクトリが空になったら削除
+                    var dir = Path.GetDirectoryName(thumbPath);
+                    if (dir != null && Directory.Exists(dir) && !Directory.EnumerateFiles(dir).Any())
+                        Directory.Delete(dir, recursive: false);
+                }
+                catch { }
+            }
             RemoveItem(item.FilePath);
+        }
 
         if (_selectedFolderFilter != null && IsUnderFolder(_selectedFolderFilter, folder.Path))
             _selectedFolderFilter = null;
@@ -467,8 +495,6 @@ public class MainViewModel : ViewModelBase
         RebuildRows();
         UpdateSummaryStatus();
 
-        // FolderWatcherServiceは個別フォルダの監視解除に対応していないため、
-        // 残っているフォルダ全体で監視を作り直す。
         _watcherService.UnwatchAll();
         foreach (var f in Folders)
             _watcherService.Watch(f);
@@ -487,7 +513,7 @@ public class MainViewModel : ViewModelBase
         _profileManager.SaveProfileFile(_profileManager.ActiveProfile, _settings);
     }
 
-    private async Task ScanFolderAsync(WatchedFolder folder)
+    private async Task ScanFolderAsync(WatchedFolder folder, bool regenerate = false)
     {
         StatusText = $"スキャン中: {folder.Path}";
 
@@ -501,7 +527,7 @@ public class MainViewModel : ViewModelBase
         var processed = 0;
         var tasks = files.Select(async file =>
         {
-            await ProcessFileAsync(file);
+            await ProcessFileAsync(file, forceRegenerate: regenerate);
             Interlocked.Increment(ref processed);
             if (processed % 25 == 0 || processed == files.Count)
                 StatusText = $"サムネイル生成中... {processed}/{files.Count}";
@@ -511,16 +537,16 @@ public class MainViewModel : ViewModelBase
         RebuildRows();
     }
 
-    private async Task RescanAllAsync()
+    private async Task RescanAllAsync(bool regenerate = false)
     {
         foreach (var folder in Folders.ToList())
-            await ScanFolderAsync(folder);
+            await ScanFolderAsync(folder, regenerate);
 
         RebuildFolderTree();
         UpdateSummaryStatus();
     }
 
-    private async Task ProcessFileAsync(string filePath)
+    private async Task ProcessFileAsync(string filePath, bool forceRegenerate = false)
     {
         try
         {
@@ -530,7 +556,10 @@ public class MainViewModel : ViewModelBase
             var isArchive = ArchiveFileTypes.IsArchiveFile(filePath);
 
             VideoItem? item = null;
-            if (_cacheLookup.TryGetValue(filePath, out var cached)
+            _cacheLookup.TryGetValue(filePath, out var cached);
+
+            if (!forceRegenerate &&
+                cached != null
                 && cached.FileSize == fileInfo.Length
                 && cached.LastWriteTicks == fileInfo.LastWriteTimeUtc.Ticks
                 && cached.ThumbnailPaths.Count > 0
