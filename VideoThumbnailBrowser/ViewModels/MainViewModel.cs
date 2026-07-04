@@ -79,6 +79,7 @@ public class MainViewModel : ViewModelBase
     public RelayCommand NextPageCommand { get; private set; } = null!;
     public RelayCommand<int> GoToPageCommand { get; private set; } = null!;
     public RelayCommand<string> GoToPageInputCommand { get; private set; } = null!;
+    public RelayCommand<string> JumpPageCommand { get; private set; } = null!;
 
     /// <summary>ページ番号ボタン一覧（ページネーションUIにバインド）。</summary>
     public System.Collections.ObjectModel.ObservableCollection<int> PageNumbers { get; } = new();
@@ -327,6 +328,12 @@ public class MainViewModel : ViewModelBase
         PrevPageCommand = new RelayCommand(_ => { if (_currentPage > 1) { CurrentPage--; BuildRowsFromPage(); } });
         NextPageCommand = new RelayCommand(_ => { if (_currentPage < TotalPages) { CurrentPage++; BuildRowsFromPage(); } });
         GoToPageCommand = new RelayCommand<int>(p => { if (p >= 1 && p <= TotalPages) { CurrentPage = p; BuildRowsFromPage(); } });
+        JumpPageCommand = new RelayCommand<string>(deltaStr =>
+        {
+            if (!int.TryParse(deltaStr, out var delta)) return;
+            var target = Math.Clamp(_currentPage + delta, 1, TotalPages);
+            if (target != _currentPage) { CurrentPage = target; BuildRowsFromPage(); }
+        });
 
         // 文字列入力からページジャンプ
         GoToPageInputCommand = new RelayCommand<string>(input =>

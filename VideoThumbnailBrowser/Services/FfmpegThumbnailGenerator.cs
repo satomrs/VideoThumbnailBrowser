@@ -22,6 +22,29 @@ public class FfmpegThumbnailGenerator
     public int ThumbnailWidth { get; set; } = 320;
     public int ThumbnailCount { get; set; } = 10;
 
+    /// <summary>NVIDIA CUDAハードウェアデコードが利用可能かどうか。起動時に一度だけ判定する。</summary>
+    private static readonly Lazy<bool> _cudaAvailable = new(() => DetectCuda());
+
+    private static bool DetectCuda()
+    {
+        try
+        {
+            // nvidia-smiが存在すればNVIDIA GPUあり
+            var psi = new ProcessStartInfo("nvidia-smi", "--query-gpu=name --format=csv,noheader")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var proc = Process.Start(psi);
+            if (proc == null) return false;
+            proc.WaitForExit(3000);
+            return proc.ExitCode == 0;
+        }
+        catch { return false; }
+    }
+
     public FfmpegThumbnailGenerator(string ffmpegPath, string ffprobePath, string cacheDir, int maxConcurrency = 0)
     {
         _ffmpegPath = ffmpegPath;
@@ -99,8 +122,24 @@ public class FfmpegThumbnailGenerator
     private async Task<bool> ExtractFrameAsync(string filePath, double timestampSeconds, string outputPath, CancellationToken ct)
     {
         var ts = timestampSeconds.ToString("F2", CultureInfo.InvariantCulture);
-        var args = $"-y -ss {ts} -i \"{filePath}\" -frames:v 1 -vf \"scale={ThumbnailWidth}:-1\" -q:v 4 \"{outputPath}\"";
+
+        // NVIDIA GPUが使える場合はCUDAハードウェアデコードで高速化
+        var hwaccel = _cudaAvailable.Value ? "-hwaccel cuda -hwaccel_output_format cuda " : "";
+        var vf = _cudaAvailable.Value
+            ? $"scale_cuda={ThumbnailWidth}:-1,hwdownload,format=nv12"
+            : $"scale={ThumbnailWidth}:-1";
+
+        var args = $"-y {hwaccel}-ss {ts} -i \"{filePath}\" -frames:v 1 -vf \"{vf}\" -q:v 4 \"{outputPath}\"";
         var (success, _, _) = await RunProcessAsync(_ffmpegPath, args, ct).ConfigureAwait(false);
+
+        // CUDAで失敗した場合はソフトウェアデコードでリトライ
+        if (!success && _cudaAvailable.Value)
+        {
+            var fallbackArgs = $"-y -ss {ts} -i \"{filePath}\" -frames:v 1 -vf \"scale={ThumbnailWidth}:-1\" -q:v 4 \"{outputPath}\"";
+            var (s2, _, _) = await RunProcessAsync(_ffmpegPath, fallbackArgs, ct).ConfigureAwait(false);
+            return s2 && File.Exists(outputPath);
+        }
+
         return success && File.Exists(outputPath);
     }
 

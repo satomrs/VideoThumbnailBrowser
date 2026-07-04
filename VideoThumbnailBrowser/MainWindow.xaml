@@ -5,6 +5,7 @@
         xmlns:controls="clr-namespace:VideoThumbnailBrowser.Controls"
         xmlns:models="clr-namespace:VideoThumbnailBrowser.Models"
         Title="PinkBrowser" Height="800" Width="1400"
+        WindowState="Maximized" WindowStartupLocation="CenterScreen"
         KeyDown="OnWindowKeyDown"
         Background="#252526" Icon="app.ico">
     <Window.DataContext>
@@ -430,8 +431,18 @@
 
                     <!-- ページ操作 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <!-- 前へ -->
-                        <Button Content="◀" Padding="8,3" Margin="0,0,2,0"
+                        <!-- 前へ（30/20/10/1ページ） -->
+                        <Button Content="◀◀◀" Padding="6,3" Margin="0,0,1,0"
+                                ToolTip="-30ページ"
+                                Command="{Binding JumpPageCommand}" CommandParameter="-30"/>
+                        <Button Content="◀◀" Padding="6,3" Margin="0,0,1,0"
+                                ToolTip="-20ページ"
+                                Command="{Binding JumpPageCommand}" CommandParameter="-20"/>
+                        <Button Content="◀" Padding="6,3" Margin="0,0,1,0"
+                                ToolTip="-10ページ"
+                                Command="{Binding JumpPageCommand}" CommandParameter="-10"/>
+                        <Button Content="‹" FontSize="14" Padding="6,3" Margin="0,0,2,0"
+                                ToolTip="前のページ"
                                 Command="{Binding PrevPageCommand}"/>
 
                         <!-- ページ番号ボタン列 -->
@@ -477,9 +488,19 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <!-- 次へ -->
-                        <Button Content="▶" Padding="8,3" Margin="2,0,0,0"
+                        <!-- 次へ（1/10/20/30ページ） -->
+                        <Button Content="›" FontSize="14" Padding="6,3" Margin="2,0,1,0"
+                                ToolTip="次のページ"
                                 Command="{Binding NextPageCommand}"/>
+                        <Button Content="▶" Padding="6,3" Margin="0,0,1,0"
+                                ToolTip="+10ページ"
+                                Command="{Binding JumpPageCommand}" CommandParameter="10"/>
+                        <Button Content="▶▶" Padding="6,3" Margin="0,0,1,0"
+                                ToolTip="+20ページ"
+                                Command="{Binding JumpPageCommand}" CommandParameter="20"/>
+                        <Button Content="▶▶▶" Padding="6,3" Margin="0,0,0,0"
+                                ToolTip="+30ページ"
+                                Command="{Binding JumpPageCommand}" CommandParameter="30"/>
 
                         <!-- ページ直接入力 -->
                         <TextBlock Text="/" Foreground="Gray" VerticalAlignment="Center" Margin="6,0,2,0"/>
