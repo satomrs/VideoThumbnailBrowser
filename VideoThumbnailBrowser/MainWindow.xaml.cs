@@ -177,6 +177,7 @@ public partial class MainWindow : Window
             "FileSize"      => "サイズ",
             "Duration"      => "動画時間",
             "TagCount"      => "タグ数",
+            "FolderPath"    => "パス順",
             _               => "ファイル名"
         };
         SortDirText.Text = Vm.SortAscending ? " ↑" : " ↓";
@@ -273,6 +274,20 @@ public partial class MainWindow : Window
 
     private void OnExitClick(object sender, RoutedEventArgs e)
         => System.Windows.Application.Current.Shutdown();
+
+    private void OnWindowKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.A &&
+            (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)))
+        {
+            Vm.SelectAllCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            Vm.ClearSelectionCommand.Execute(null);
+        }
+    }
 
     private void OnSearchClearClick(object sender, RoutedEventArgs e)
     {

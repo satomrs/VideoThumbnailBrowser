@@ -133,6 +133,7 @@ public class ArchiveThumbnailExtractor
     private static async Task<(bool ok, string stdout, string stderr)> RunAsync(
         string exe, string args, CancellationToken ct)
     {
+        Process? proc = null;
         try
         {
             var psi = new System.Diagnostics.ProcessStartInfo
@@ -141,14 +142,27 @@ public class ArchiveThumbnailExtractor
                 RedirectStandardOutput = true, RedirectStandardError = true,
                 UseShellExecute = false, CreateNoWindow = true
             };
-            using var proc = new System.Diagnostics.Process { StartInfo = psi };
+            proc = new System.Diagnostics.Process { StartInfo = psi };
             proc.Start();
             var stdout = await proc.StandardOutput.ReadToEndAsync(ct);
             var stderr = await proc.StandardError.ReadToEndAsync(ct);
             await proc.WaitForExitAsync(ct);
             return (proc.ExitCode == 0, stdout, stderr);
         }
-        catch { return (false, "", ""); }
+        catch (OperationCanceledException)
+        {
+            try { proc?.Kill(entireProcessTree: true); } catch { }
+            return (false, "", "");
+        }
+        catch
+        {
+            try { proc?.Kill(entireProcessTree: true); } catch { }
+            return (false, "", "");
+        }
+        finally
+        {
+            proc?.Dispose();
+        }
     }
 
     private static string ComputeHash(string path)

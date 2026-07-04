@@ -5,6 +5,7 @@
         xmlns:controls="clr-namespace:VideoThumbnailBrowser.Controls"
         xmlns:models="clr-namespace:VideoThumbnailBrowser.Models"
         Title="PinkBrowser" Height="800" Width="1400"
+        KeyDown="OnWindowKeyDown"
         Background="#252526" Icon="app.ico">
     <Window.DataContext>
         <vm:MainViewModel />
@@ -82,6 +83,7 @@
                         <MenuItem Header="ファイルサイズ" Tag="FileSize" Click="OnSortMenuClick"/>
                         <MenuItem Header="動画時間"   Tag="Duration" Click="OnSortMenuClick"/>
                         <MenuItem Header="タグ数"     Tag="TagCount" Click="OnSortMenuClick"/>
+                        <MenuItem Header="パス順"     Tag="FolderPath" Click="OnSortMenuClick"/>
                         <Separator/>
                         <MenuItem Header="昇順 ↑" Click="OnSortAscClick"/>
                         <MenuItem Header="降順 ↓" Click="OnSortDescClick"/>

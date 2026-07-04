@@ -35,6 +35,11 @@ public class FfmpegThumbnailGenerator
 
     public async Task<VideoItem?> GenerateAsync(string filePath, CancellationToken ct = default)
     {
+        // アプリ終了時のキャンセルとも連携する
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            ct, App.AppCts.Token);
+        ct = linked.Token;
+
         await _concurrencyLimiter.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -102,6 +107,7 @@ public class FfmpegThumbnailGenerator
     private static async Task<(bool success, string stdout, string stderr)> RunProcessAsync(
         string exePath, string arguments, CancellationToken ct)
     {
+        Process? process = null;
         try
         {
             var psi = new ProcessStartInfo
@@ -114,7 +120,7 @@ public class FfmpegThumbnailGenerator
                 CreateNoWindow = true
             };
 
-            using var process = new Process { StartInfo = psi };
+            process = new Process { StartInfo = psi };
             process.Start();
 
             var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
@@ -126,10 +132,19 @@ public class FfmpegThumbnailGenerator
 
             return (process.ExitCode == 0, stdout, stderr);
         }
+        catch (OperationCanceledException)
+        {
+            try { process?.Kill(entireProcessTree: true); } catch { }
+            return (false, string.Empty, string.Empty);
+        }
         catch (Exception)
         {
-            // ffmpeg/ffprobeが見つからない、起動に失敗した等。呼び出し元で「失敗」として扱う。
+            try { process?.Kill(entireProcessTree: true); } catch { }
             return (false, string.Empty, string.Empty);
+        }
+        finally
+        {
+            process?.Dispose();
         }
     }
 

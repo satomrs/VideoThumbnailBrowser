@@ -65,7 +65,7 @@ public partial class ScrubThumbnailControl : System.Windows.Controls.UserControl
             btn.Click += (_, _) =>
             {
                 if (VideoItem == null) return;
-                VideoItem.Rating = VideoItem.Rating == index ? 0 : index;
+                FindMainViewModel()?.SetRating(VideoItem, index);
                 UpdateStarDisplay();
             };
             StarPanel.Children.Add(btn);

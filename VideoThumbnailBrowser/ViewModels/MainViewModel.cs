@@ -183,7 +183,7 @@ public class MainViewModel : ViewModelBase
         {
             value = Math.Max(1, value);
             if (SetField(ref _columnCount, value))
-                RebuildRows();
+                BuildRowsFromPage(); // ページリセットしない
         }
     }
 
@@ -236,6 +236,7 @@ public class MainViewModel : ViewModelBase
 
     public RelayCommand<VideoItemViewModel> ToggleSelectCommand { get; }
     public RelayCommand ClearSelectionCommand { get; }
+    public RelayCommand SelectAllCommand { get; }
     public RelayCommand BulkTagCommand { get; }
 
     public MainViewModel()
@@ -294,6 +295,7 @@ public class MainViewModel : ViewModelBase
 
         ToggleSelectCommand = new RelayCommand<VideoItemViewModel>(item => ToggleSelect(item));
         ClearSelectionCommand = new RelayCommand(_ => ClearSelection());
+        SelectAllCommand = new RelayCommand(_ => SelectAll());
         BulkTagCommand = new RelayCommand(_ => OpenBulkTagDialog());
 
         ClearRatingFilterCommand = new RelayCommand(_ => { RatingFilter = 0; });
@@ -761,7 +763,9 @@ public class MainViewModel : ViewModelBase
     {
         foreach (var keyword in query.NameKeywords)
         {
-            if (!item.FileName.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            // ファイル名またはフォルダパスの部分一致
+            if (!item.FileName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                && !item.FolderPath.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 return false;
         }
 
@@ -844,6 +848,8 @@ public class MainViewModel : ViewModelBase
             "FileSize"      => source.OrderBy(v => v.FileSize),
             "Duration"      => source.OrderBy(v => v.DurationSeconds),
             "TagCount"      => source.OrderBy(v => v.TagCount),
+            "FolderPath"    => source.OrderBy(v => v.FolderPath, StringComparer.OrdinalIgnoreCase)
+                                     .ThenBy(v => v.FileName, StringComparer.OrdinalIgnoreCase),
             _               => source.OrderBy(v => v.FileName, StringComparer.OrdinalIgnoreCase)
         };
 
@@ -1095,6 +1101,35 @@ public class MainViewModel : ViewModelBase
             item.IsSelected = false;
         _selectedItems.Clear();
         SelectedCount = 0;
+    }
+
+    public void SelectAll()
+    {
+        // 現在表示中（フィルター適用後）の全アイテムを選択
+        var visible = Rows.SelectMany(r => r.Items).ToList();
+        foreach (var item in visible)
+        {
+            if (!item.IsSelected)
+            {
+                item.IsSelected = true;
+                _selectedItems.Add(item);
+            }
+        }
+        SelectedCount = _selectedItems.Count;
+    }
+
+    /// <summary>評価を設定する。複数選択中なら全選択アイテムに適用。単体はトグル。</summary>
+    public void SetRating(VideoItemViewModel target, int rating)
+    {
+        if (_selectedItems.Count > 1 && _selectedItems.Contains(target))
+        {
+            foreach (var item in _selectedItems.ToList())
+                item.Rating = rating;
+        }
+        else
+        {
+            target.Rating = target.Rating == rating ? 0 : rating;
+        }
     }
 
     private void OpenBulkTagDialog()
