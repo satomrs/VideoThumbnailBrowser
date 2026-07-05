@@ -92,6 +92,7 @@ public class ProfileManager
                 Folders = settings.Folders,
                 ThumbnailsPerVideo = settings.ThumbnailsPerVideo,
                 ThumbnailDisplayWidth = settings.ThumbnailDisplayWidth,
+                PageSize = settings.PageSize,
                 SortKey = settings.SortKey,
                 SortAscending = settings.SortAscending,
                 VideoApps = settings.VideoApps,
@@ -117,6 +118,7 @@ public class ProfileManager
                 Folders = data.Folders ?? new(),
                 ThumbnailsPerVideo = data.ThumbnailsPerVideo > 0 ? data.ThumbnailsPerVideo : 4,
                 ThumbnailDisplayWidth = data.ThumbnailDisplayWidth > 0 ? data.ThumbnailDisplayWidth : 200,
+                PageSize = data.PageSize > 0 ? data.PageSize : 20,
                 SortKey = data.SortKey ?? "FileName",
                 SortAscending = data.SortAscending,
                 VideoApps = data.VideoApps ?? new(),
@@ -172,6 +174,7 @@ public class ProfileManager
         public List<WatchedFolder>? Folders { get; set; }
         public int ThumbnailsPerVideo { get; set; } = 4;
         public int ThumbnailDisplayWidth { get; set; } = 200;
+        public int PageSize { get; set; } = 20;
         public string? SortKey { get; set; }
         public bool SortAscending { get; set; } = true;
         public List<ExternalApp>? VideoApps { get; set; }

@@ -12,6 +12,7 @@ public class AppSettings
     public List<WatchedFolder> Folders { get; set; } = new();
     public int ThumbnailsPerVideo { get; set; } = 4;
     public int ThumbnailDisplayWidth { get; set; } = 200;
+    public int PageSize { get; set; } = 20;
     public string SortKey { get; set; } = "FileName";
     public bool SortAscending { get; set; } = true;
 

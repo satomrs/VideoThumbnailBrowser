@@ -37,6 +37,16 @@
                        Margin="8,0,0,0" VerticalAlignment="Center" Width="32"/>
         </StackPanel>
 
+        <!-- 1ページあたりの表示件数 -->
+        <TextBlock Grid.Row="4" Text="1ページあたりの表示件数" Foreground="White" Margin="0,0,0,4"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+            <Slider Width="300" Minimum="5" Maximum="200"
+                    Value="{Binding PageSize}" TickFrequency="5" IsSnapToTickEnabled="True"
+                    VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding PageSize}" Foreground="White"
+                       Margin="8,0,0,0" VerticalAlignment="Center" Width="32"/>
+        </StackPanel>
+
         <!-- 動画用起動ソフト -->
         <TextBlock Grid.Row="4" Text="🎬 動画用起動ソフト（最大3つ）" Foreground="White"
                    FontWeight="Bold" Margin="0,0,0,6"/>

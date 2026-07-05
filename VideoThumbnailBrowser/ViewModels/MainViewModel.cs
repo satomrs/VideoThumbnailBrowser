@@ -65,15 +65,15 @@ public class MainViewModel : ViewModelBase
     private string? _selectedFolderFilter;
 
     // ---- ページネーション ----
-    private const int PageSize = 20;
+    private int _pageSize = 20;
     private List<VideoItemViewModel> _filteredItems = new();
 
     private int _currentPage = 1;
     public int CurrentPage { get => _currentPage; private set { SetField(ref _currentPage, value); NotifyPageProps(); } }
-    public int TotalPages => Math.Max(1, (int)Math.Ceiling(_filteredItems.Count / (double)PageSize));
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(_filteredItems.Count / (double)_pageSize));
     public int TotalCount => _filteredItems.Count;
-    public int PageStartIndex => _filteredItems.Count == 0 ? 0 : (_currentPage - 1) * PageSize + 1;
-    public int PageEndIndex => Math.Min(_currentPage * PageSize, _filteredItems.Count);
+    public int PageStartIndex => _filteredItems.Count == 0 ? 0 : (_currentPage - 1) * _pageSize + 1;
+    public int PageEndIndex => Math.Min(_currentPage * _pageSize, _filteredItems.Count);
 
     public RelayCommand PrevPageCommand { get; private set; } = null!;
     public RelayCommand NextPageCommand { get; private set; } = null!;
@@ -258,6 +258,7 @@ public class MainViewModel : ViewModelBase
         _thumbnailDisplayWidth = _settings.ThumbnailDisplayWidth;
         _sortKey = _settings.SortKey;
         _sortAscending = _settings.SortAscending;
+        _pageSize = _settings.PageSize > 0 ? _settings.PageSize : 20;
 
         var thumbDir = _profileManager.GetThumbnailDir(_profileManager.ActiveProfile);
         _cacheDb = new ThumbnailCacheDb(_profileManager.GetDbPath(_profileManager.ActiveProfile));
@@ -731,7 +732,7 @@ public class MainViewModel : ViewModelBase
     private void BuildRowsFromPage()
     {
         Rows.Clear();
-        var pageItems = _filteredItems.Skip((_currentPage - 1) * PageSize).Take(PageSize).ToList();
+        var pageItems = _filteredItems.Skip((_currentPage - 1) * _pageSize).Take(_pageSize).ToList();
 
         for (var i = 0; i < pageItems.Count; i += ColumnCount)
         {
@@ -804,7 +805,8 @@ public class MainViewModel : ViewModelBase
             _settings.ThumbnailsPerVideo,
             _settings.ThumbnailDisplayWidth,
             _settings.VideoApps,
-            _settings.ArchiveApps);
+            _settings.ArchiveApps,
+            _settings.PageSize);
 
         var window = new SettingsWindow(vm)
         {
@@ -816,6 +818,13 @@ public class MainViewModel : ViewModelBase
         _settings.ThumbnailDisplayWidth = vm.ThumbnailDisplayWidth;
         _settings.VideoApps = vm.GetValidVideoApps();
         _settings.ArchiveApps = vm.GetValidArchiveApps();
+
+        if (vm.PageSize != _settings.PageSize)
+        {
+            _settings.PageSize = vm.PageSize;
+            _pageSize = vm.PageSize;
+            RebuildRows(); // ページサイズ変更は即時反映
+        }
 
         if (vm.ThumbnailsPerVideo != _settings.ThumbnailsPerVideo)
         {
@@ -905,6 +914,7 @@ public class MainViewModel : ViewModelBase
         ThumbnailDisplayWidth = _thumbnailDisplayWidth;
         _sortKey = _settings.SortKey;
         _sortAscending = _settings.SortAscending;
+        _pageSize = _settings.PageSize > 0 ? _settings.PageSize : 20;
 
         var thumbDir = _profileManager.GetThumbnailDir(profile);
         _cacheDb = new ThumbnailCacheDb(_profileManager.GetDbPath(profile));
